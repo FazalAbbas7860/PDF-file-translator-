@@ -1,0 +1,6 @@
+{
+  "name": "AI PDF & Video Translator",
+  "description": "ایک پروفیشنل آرٹیفیشل انٹیلیجنس پر مبنی مترجم ویب سائٹ جو پی ڈی ایف دستاویزات اور ویڈیوز کا سیکنڈز میں کسی بھی زبان میں ترجمہ، ٹرانسکرپشن، اور ٹیکسٹ ٹو اسپیچ کر سکتی ہے۔",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
