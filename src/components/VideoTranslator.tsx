@@ -90,7 +90,15 @@ export default function VideoTranslator({ onSaveItem, onGlobalSpeak }: VideoTran
         body: formData,
       });
 
-      const data = await response.json();
+      let data: any = {};
+      const contentType = response.headers.get("content-type");
+      if (contentType && contentType.includes("application/json")) {
+        data = await response.json();
+      } else {
+        const text = await response.text();
+        throw new Error(text || `سرور کی خرابی (${response.status}): اسپیچ پروسیسنگ میں خرابی پیش آئی۔`);
+      }
+
       if (!response.ok) {
         throw new Error(data.error || 'ٹرانسکرپٹ اور اسپیچ پروسیسنگ میں خرابی پیش آئی۔');
       }
@@ -127,7 +135,15 @@ export default function VideoTranslator({ onSaveItem, onGlobalSpeak }: VideoTran
         }),
       });
 
-      const data = await response.json();
+      let data: any = {};
+      const contentType = response.headers.get("content-type");
+      if (contentType && contentType.includes("application/json")) {
+        data = await response.json();
+      } else {
+        const text = await response.text();
+        throw new Error(text || `سرور کی خرابی (${response.status}): ترجمہ کرنے میں خرابی پیش آئی۔`);
+      }
+
       if (!response.ok) {
          throw new Error(data.error || 'Translation operation failed.');
       }
@@ -171,7 +187,15 @@ export default function VideoTranslator({ onSaveItem, onGlobalSpeak }: VideoTran
         }),
       });
 
-      const data = await response.json();
+      let data: any = {};
+      const contentType = response.headers.get("content-type");
+      if (contentType && contentType.includes("application/json")) {
+        data = await response.json();
+      } else {
+        const text = await response.text();
+        throw new Error(text || `سرور کی خرابی (${response.status}): آواز بنانے میں ناکامی۔`);
+      }
+
       if (!response.ok) {
         throw new Error(data.error || 'TTS audio voice generation failed.');
       }
@@ -181,6 +205,7 @@ export default function VideoTranslator({ onSaveItem, onGlobalSpeak }: VideoTran
       
       setTimeout(() => {
         if (audioPlayerRef.current) {
+          audioPlayerRef.current.load();
           audioPlayerRef.current.play().catch(e => console.log("Voice Auto-play block.", e));
         }
       }, 300);
@@ -453,8 +478,9 @@ export default function VideoTranslator({ onSaveItem, onGlobalSpeak }: VideoTran
               value={translatedText}
               onChange={(e) => setTranslatedText(e.target.value)}
               placeholder="The speech translation output will appear here..."
+              dir={targetLang === 'ur' || targetLang === 'ar' || targetLang === 'fa' ? 'rtl' : 'ltr'}
               className={`w-full h-80 bg-slate-950/85 border border-slate-800/60 rounded-xl p-4 text-slate-200 text-lg font-sans focus:border-cyan-500/40 focus:ring-1 focus:ring-cyan-500/10 focus:outline-none resize-none scroll-smooth select-all leading-relaxed ${
-                targetLang === 'ur' || targetLang === 'ar' ? 'text-right md:direction-rtl' : 'text-left'
+                targetLang === 'ur' || targetLang === 'ar' || targetLang === 'fa' ? 'text-right' : 'text-left'
               }`}
             ></textarea>
 
@@ -519,7 +545,7 @@ export default function VideoTranslator({ onSaveItem, onGlobalSpeak }: VideoTran
                       className="flex-1 px-4 py-2 border border-cyan-500/25 bg-cyan-500/10 hover:bg-cyan-500/20 text-cyan-400 font-bold rounded-lg text-xs flex items-center justify-center gap-1.5 transition-colors cursor-pointer text-center"
                     >
                       <Download className="w-4 h-4" />
-                      <span>Download speech MP3</span>
+                      <span>Download Speech (WAV)</span>
                     </a>
                   )}
                 </div>

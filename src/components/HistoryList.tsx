@@ -115,7 +115,14 @@ export default function HistoryList({
                 </div>
                 <div className="space-y-1 bg-cyan-950/15 p-2.5 rounded-xl border border-cyan-500/10">
                   <span className="text-[10px] text-cyan-400 font-mono">Translated Output:</span>
-                  <p className="text-slate-200 font-sans line-clamp-3 leading-relaxed text-right md:direction-rtl select-all">{item.translatedText}</p>
+                  <p 
+                    dir={item.targetLang === 'ur' || item.targetLang === 'ar' || item.targetLang === 'fa' ? 'rtl' : 'ltr'}
+                    className={`text-slate-200 font-sans line-clamp-3 leading-relaxed select-all ${
+                      item.targetLang === 'ur' || item.targetLang === 'ar' || item.targetLang === 'fa' ? 'text-right' : 'text-left'
+                    }`}
+                  >
+                    {item.translatedText}
+                  </p>
                 </div>
               </div>
             </div>

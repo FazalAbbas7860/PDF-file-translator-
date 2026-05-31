@@ -87,7 +87,15 @@ export default function PdfTranslator({ onSaveItem, onGlobalSpeak }: PdfTranslat
         body: formData,
       });
 
-      const data = await response.json();
+      let data: any = {};
+      const contentType = response.headers.get("content-type");
+      if (contentType && contentType.includes("application/json")) {
+        data = await response.json();
+      } else {
+        const text = await response.text();
+        throw new Error(text || `سرور کی خرابی (${response.status}): پی ڈی ایف سے ٹیکسٹ نکالنے میں خرابی پیش آئی۔`);
+      }
+
       if (!response.ok) {
         throw new Error(data.error || 'پی ڈی ایف سے ٹیکسٹ نکالنے میں خرابی پیش آئی۔');
       }
@@ -122,7 +130,15 @@ export default function PdfTranslator({ onSaveItem, onGlobalSpeak }: PdfTranslat
         }),
       });
 
-      const data = await response.json();
+      let data: any = {};
+      const contentType = response.headers.get("content-type");
+      if (contentType && contentType.includes("application/json")) {
+        data = await response.json();
+      } else {
+        const text = await response.text();
+        throw new Error(text || `سرور کی خرابی (${response.status}): ترجمہ کرنے میں خرابی پیش آئی۔`);
+      }
+
       if (!response.ok) {
          throw new Error(data.error || 'ترجمہ میں خرابی پیش آئی۔');
       }
@@ -165,7 +181,15 @@ export default function PdfTranslator({ onSaveItem, onGlobalSpeak }: PdfTranslat
         }),
       });
 
-      const data = await response.json();
+      let data: any = {};
+      const contentType = response.headers.get("content-type");
+      if (contentType && contentType.includes("application/json")) {
+        data = await response.json();
+      } else {
+        const text = await response.text();
+        throw new Error(text || `سرور کی خرابی (${response.status}): آواز بنانے میں ناکامی۔`);
+      }
+
       if (!response.ok) {
         throw new Error(data.error || 'آڈیو بنانے میں سرور فیل ہوا۔ Client TTS کا آزمائیں متبادل کے طور پر۔');
       }
@@ -176,6 +200,7 @@ export default function PdfTranslator({ onSaveItem, onGlobalSpeak }: PdfTranslat
       // Auto play generated voice
       setTimeout(() => {
         if (audioPlayerRef.current) {
+          audioPlayerRef.current.load();
           audioPlayerRef.current.play().catch(e => console.log("Auto-play blocked by browser. Click Play manually.", e));
         }
       }, 300);
@@ -387,8 +412,9 @@ export default function PdfTranslator({ onSaveItem, onGlobalSpeak }: PdfTranslat
               value={translatedText}
               onChange={(e) => setTranslatedText(e.target.value)}
               placeholder="The dynamic AI translation will appear here..."
+              dir={targetLang === 'ur' || targetLang === 'ar' || targetLang === 'fa' ? 'rtl' : 'ltr'}
               className={`w-full h-80 bg-slate-950/85 border border-slate-800/60 rounded-xl p-4 text-slate-200 text-lg font-sans focus:border-cyan-500/40 focus:ring-1 focus:ring-cyan-500/10 focus:outline-none resize-none scroll-smooth select-all leading-relaxed ${
-                targetLang === 'ur' || targetLang === 'ar' ? 'text-right md:direction-rtl' : 'text-left'
+                targetLang === 'ur' || targetLang === 'ar' || targetLang === 'fa' ? 'text-right' : 'text-left'
               }`}
             ></textarea>
 
@@ -443,7 +469,7 @@ export default function PdfTranslator({ onSaveItem, onGlobalSpeak }: PdfTranslat
                       className="px-4 py-2 border border-cyan-500/20 bg-cyan-500/10 hover:bg-cyan-500/20 text-cyan-400 font-bold rounded-lg text-xs flex items-center gap-1.5 transition-colors cursor-pointer"
                     >
                       <Download className="w-4 h-4" />
-                      <span>Download Speech MP3</span>
+                      <span>Download Speech (WAV)</span>
                     </a>
                   )}
                 </div>
