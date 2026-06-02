@@ -1,8 +1,8 @@
-import { Languages, FileText, Video, History, BookOpen, Sparkles } from 'lucide-react';
+import { Languages, FileText, Video, History, BookOpen, Sparkles, Archive } from 'lucide-react';
 
 interface HeaderProps {
-  activeTab: 'pdf' | 'video' | 'history' | 'guide';
-  setActiveTab: (tab: 'pdf' | 'video' | 'history' | 'guide') => void;
+  activeTab: 'pdf' | 'video' | 'batch' | 'history' | 'guide';
+  setActiveTab: (tab: 'pdf' | 'video' | 'batch' | 'history' | 'guide') => void;
   savedCount: number;
 }
 
@@ -50,12 +50,24 @@ export default function Header({ activeTab, setActiveTab, savedCount }: HeaderPr
                 onClick={() => setActiveTab('video')}
                 className={`flex items-center gap-1.5 px-3 py-1.5 md:px-4 md:py-2 rounded-xl text-xs sm:text-sm font-medium transition-all duration-200 ${
                   activeTab === 'video'
-                    ? 'bg-cyan-500/10 text-cyan-400 border border-cyan-500/30 shadow-[0_0_15px_rgba(34,211,238,0.05)]'
+                    ? 'bg-cyan-500/10 text-cyan-400 border border-cyan-500/30'
                     : 'text-slate-400 hover:text-slate-200 hover:bg-slate-900/40'
                 }`}
               >
                 <Video className="w-4 h-4" />
                 <span>Video/Audio</span>
+              </button>
+
+              <button
+                onClick={() => setActiveTab('batch')}
+                className={`flex items-center gap-1.5 px-3 py-1.5 md:px-4 md:py-2 rounded-xl text-xs sm:text-sm font-medium transition-all duration-200 ${
+                  activeTab === 'batch'
+                    ? 'bg-cyan-500/10 text-cyan-400 border border-cyan-500/30 shadow-[0_0_15px_rgba(34,211,238,0.05)]'
+                    : 'text-slate-400 hover:text-slate-200 hover:bg-slate-900/40'
+                }`}
+              >
+                <Archive className="w-4 h-4" />
+                <span>Batch Processor</span>
               </button>
 
               <button
@@ -113,6 +125,17 @@ export default function Header({ activeTab, setActiveTab, savedCount }: HeaderPr
         >
           <Video className="w-5 h-5" />
           <span className="text-[10px] tracking-wide font-sans">Video/Audio</span>
+        </button>
+
+        <button
+          onClick={() => setActiveTab('batch')}
+          className={`flex flex-col items-center gap-1 text-center font-medium transition-all ${
+            activeTab === 'batch' ? 'text-cyan-400 font-bold scale-105' : 'text-slate-400 hover:text-slate-350'
+          }`}
+          style={{ minHeight: '44px' }}
+        >
+          <Archive className="w-5 h-5" />
+          <span className="text-[10px] tracking-wide font-sans">Batch</span>
         </button>
 
         <button

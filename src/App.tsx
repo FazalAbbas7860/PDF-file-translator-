@@ -3,13 +3,14 @@ import { SavedItem } from './types';
 import Header from './components/Header';
 import PdfTranslator from './components/PdfTranslator';
 import VideoTranslator from './components/VideoTranslator';
+import BatchTranslator from './components/BatchTranslator';
 import HistoryList from './components/HistoryList';
 import Documentation from './components/Documentation';
-import { Sparkles, FileText, Video, History, HelpCircle, AudioWaveform as Waveform, Globe2 } from 'lucide-react';
+import { Sparkles, FileText, Video, History, HelpCircle, AudioWaveform as Waveform, Globe2, Archive } from 'lucide-react';
 import { exportToPdf } from './utils/pdfGenerator';
 
 export default function App() {
-  const [activeTab, setActiveTab] = useState<'pdf' | 'video' | 'history' | 'guide'>('pdf');
+  const [activeTab, setActiveTab] = useState<'pdf' | 'video' | 'batch' | 'history' | 'guide'>('pdf');
   const [savedItems, setSavedItems] = useState<SavedItem[]>([]);
 
   // Load items from localstorage on mount
@@ -43,10 +44,8 @@ export default function App() {
   };
 
   const handleClearAllHistory = () => {
-    if (confirm("Are you sure you want to clear all history?")) {
-      setSavedItems([]);
-      localStorage.removeItem('tarjuma_ai_history');
-    }
+    setSavedItems([]);
+    localStorage.removeItem('tarjuma_ai_history');
   };
 
   // CLIENT SIDE STANDARD SPEECH SYNTHESIS ENGINE (FALLBACK / OFFLINE)
@@ -129,6 +128,10 @@ export default function App() {
 
           {activeTab === 'video' && (
             <VideoTranslator onSaveItem={handleSaveItem} onGlobalSpeak={handleClientSpeak} />
+          )}
+
+          {activeTab === 'batch' && (
+            <BatchTranslator onSaveItem={handleSaveItem} onGlobalSpeak={handleClientSpeak} />
           )}
 
           {activeTab === 'history' && (

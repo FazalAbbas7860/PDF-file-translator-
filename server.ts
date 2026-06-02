@@ -293,6 +293,50 @@ ${text}`;
   }
 });
 
+// Helper to split text into manageable length chunks cleanly for Voice Synthesis
+function splitTextIntoChunks(text: string, maxLength: number = 600): string[] {
+  const chunks: string[] = [];
+  let currentIndex = 0;
+
+  while (currentIndex < text.length) {
+    if (text.length - currentIndex <= maxLength) {
+      chunks.push(text.substring(currentIndex).trim());
+      break;
+    }
+
+    const endOfChunk = currentIndex + maxLength;
+    // Walk back to find spacing or punctuation to split cleanly
+    let splitIndex = -1;
+    const searchString = text.substring(currentIndex, endOfChunk);
+    
+    const punctuationSymbols = [". ", "! ", "? ", "\n", "۔", "۔ "];
+    for (const p of punctuationSymbols) {
+      const idx = searchString.lastIndexOf(p);
+      if (idx > 0 && idx > splitIndex) {
+        splitIndex = idx + p.length;
+      }
+    }
+    
+    // If no punctuation found, split at space
+    if (splitIndex === -1) {
+      const idx = searchString.lastIndexOf(" ");
+      if (idx > 0) {
+        splitIndex = idx + 1;
+      }
+    }
+
+    // Fallback if no simple split found
+    if (splitIndex === -1 || splitIndex < 150) {
+      splitIndex = maxLength;
+    }
+
+    chunks.push(text.substring(currentIndex, currentIndex + splitIndex).trim());
+    currentIndex += splitIndex;
+  }
+
+  return chunks.filter(c => c.length > 0);
+}
+
 // 4. TEXT-TO-SPEECH (TTS) VOICES GENERATOR API
 app.post("/api/tts", async (req, res) => {
   try {
@@ -303,34 +347,48 @@ app.post("/api/tts", async (req, res) => {
 
     const ai = getGeminiClient();
 
-    // Clean text to keep length reasonable for single TTS candidates
-    const maxLength = 600;
-    const cleanText = text.length > maxLength ? text.substring(0, maxLength) + "..." : text;
+    // Split text into chunk to support full PDF document translation readout
+    const textChunks = splitTextIntoChunks(text, 600);
+    // Limit to maximum 15 chunks (about 9000 characters) to prevent rate limits or timeout issues
+    const activeChunks = textChunks.slice(0, 15);
 
-    // Use Gemini 3.1 TTS Model as specified in skill guidelines, with transient retry wrapper
-    const response = await withRetry(async () => {
-      return await ai.models.generateContent({
-        model: "gemini-3.1-flash-tts-preview",
-        contents: [{ parts: [{ text: `Generate spoken dialogue for this text in its native accent and natural voice: ${cleanText}` }] }],
-        config: {
-          responseModalities: [Modality.AUDIO],
-          speechConfig: {
-            voiceConfig: {
-              prebuiltVoiceConfig: { voiceName: voiceName || 'Puck' },
+    const pcmBuffers: Buffer[] = [];
+
+    for (let i = 0; i < activeChunks.length; i++) {
+      const chunkText = activeChunks[i];
+
+      const response = await withRetry(async () => {
+        return await ai.models.generateContent({
+          model: "gemini-3.1-flash-tts-preview",
+          contents: [{ parts: [{ text: `Generate spoken dialogue for this text in its native accent and natural voice: ${chunkText}` }] }],
+          config: {
+            responseModalities: [Modality.AUDIO],
+            speechConfig: {
+              voiceConfig: {
+                prebuiltVoiceConfig: { voiceName: voiceName || 'Puck' },
+              },
             },
           },
-        },
-      });
-    }, 5, 1500);
+        });
+      }, 5, 1000);
 
-    const base64Audio = response.candidates?.[0]?.content?.parts?.[0]?.inlineData?.data;
+      const base64Audio = response.candidates?.[0]?.content?.parts?.[0]?.inlineData?.data;
+      if (base64Audio) {
+        pcmBuffers.push(Buffer.from(base64Audio, "base64"));
+      }
 
-    if (!base64Audio) {
+      // Brief gap to respect API rate-limits
+      if (i < activeChunks.length - 1) {
+        await new Promise(resolve => setTimeout(resolve, 250));
+      }
+    }
+
+    if (pcmBuffers.length === 0) {
       throw new Error("No voice audio synthesized by the model.");
     }
 
     // Convert raw linear PCM to standard WAV format
-    const pcmBuffer = Buffer.from(base64Audio, "base64");
+    const pcmBuffer = Buffer.concat(pcmBuffers);
     
     // Add 44-byte standard mono 24000Hz 16-bit WAV header to the PCM data
     const numChannels = 1;

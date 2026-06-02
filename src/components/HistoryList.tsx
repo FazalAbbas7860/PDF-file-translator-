@@ -1,3 +1,4 @@
+import React, { useState, useEffect } from 'react';
 import { SavedItem, SUPPORTED_LANGUAGES } from '../types';
 import { FileText, Video, Calendar, Trash2, ArrowRight, Volume2, Download, AlertCircle } from 'lucide-react';
 
@@ -17,6 +18,14 @@ export default function HistoryList({
   onSpeak,
   onDownloadPdf
 }: Omit<HistoryListProps, 'onSelect'> & { onSelect?: (item: SavedItem) => void }) {
+  const [showConfirm, setShowConfirm] = useState(false);
+
+  useEffect(() => {
+    if (showConfirm) {
+      const timer = setTimeout(() => setShowConfirm(false), 4000);
+      return () => clearTimeout(timer);
+    }
+  }, [showConfirm]);
   
   const getLanguageName = (code: string) => {
     return SUPPORTED_LANGUAGES.find(l => l.code === code)?.name || code.toUpperCase();
@@ -54,12 +63,24 @@ export default function HistoryList({
           </h2>
           <p className="text-xs text-slate-500 font-mono">Total records in bento archive: {items.length}</p>
         </div>
-        <button
-          onClick={onClearAll}
-          className="text-xs text-rose-400 hover:text-rose-300 px-3 py-1.5 rounded-xl bg-rose-500/10 hover:bg-rose-500/20 transition-all font-medium border border-rose-500/15 cursor-pointer"
-        >
-          Clear All
-        </button>
+        {showConfirm ? (
+          <button
+            onClick={() => {
+              setShowConfirm(false);
+              onClearAll();
+            }}
+            className="text-xs text-white bg-rose-600 hover:bg-rose-500 px-3 py-1.5 rounded-xl transition-all font-semibold cursor-pointer animate-pulse"
+          >
+            Confirm Clear All?
+          </button>
+        ) : (
+          <button
+            onClick={() => setShowConfirm(true)}
+            className="text-xs text-rose-400 hover:text-rose-300 px-3 py-1.5 rounded-xl bg-rose-500/10 hover:bg-rose-500/20 transition-all font-medium border border-rose-500/15 cursor-pointer"
+          >
+            Clear All
+          </button>
+        )}
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
