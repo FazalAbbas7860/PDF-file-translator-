@@ -45,7 +45,7 @@ function getGeminiClient(): GoogleGenAI {
 }
 
 // Helper to call a function with exponential backoff retries for transient/503/high-demand/429 errors
-async function withRetry<T>(fn: () => Promise<T>, retries = 3, delayMs = 1500): Promise<T> {
+async function withRetry<T>(fn: () => Promise<T>, retries = 5, delayMs = 1500): Promise<T> {
   try {
     return await fn();
   } catch (error: any) {
@@ -62,12 +62,32 @@ async function withRetry<T>(fn: () => Promise<T>, retries = 3, delayMs = 1500): 
       errorStr.includes("RESOURCE_EXHAUSTED");
 
     if (isTransient && retries > 0) {
-      console.warn(`Transient Gemini error (503/429/high demand). Retrying in ${delayMs}ms... (Remaining retries: ${retries})`, error.message || error);
+      console.log(`[Gemini Retry Log] Detected busy model condition. Re-trying request in ${delayMs}ms. (Remaining attempts left: ${retries})`);
       await new Promise((resolve) => setTimeout(resolve, delayMs));
-      return withRetry(fn, retries - 1, delayMs * 2);
+      return withRetry(fn, retries - 1, delayMs * 1.8);
     }
     throw error;
   }
+}
+
+// Format raw Gemini errors into highly-polished Urdu & English human messages
+function formatFriendlyError(error: any, context: string): string {
+  const msg = error?.message || (typeof error === "string" ? error : "");
+  const errorStr = (JSON.stringify(error) || msg || "").toLowerCase();
+  
+  const isTransient = 
+    errorStr.includes("503") || 
+    errorStr.includes("unavailable") || 
+    errorStr.includes("high demand") || 
+    errorStr.includes("exhausted") || 
+    errorStr.includes("429") ||
+    errorStr.includes("rate limit");
+
+  if (isTransient) {
+    return `سرور پر اس وقت ٹریفک زیادہ ہے۔ براہ کرم 5 سیکنڈ بعد دوبارہ کوشش کریں۔ (The translation server is currently handling high demand. Please try again in 5 seconds.) [Context: ${context}]`;
+  }
+  
+  return msg || `خصوصی پروسیسنگ میں خرابی پیش آئی۔ (${context} failed.)`;
 }
 
 // Helper to run a generateContent call with retries and an optional fallback model (e.g., gemini-3.1-flash-lite)
@@ -79,19 +99,29 @@ async function generateContentWithFallback(
 ): Promise<any> {
   const ai = getGeminiClient();
 
-  const runWithModel = async (modelName: string) => {
+  const runPrimary = async () => {
     return await withRetry(async () => {
       return await ai.models.generateContent({
-        model: modelName,
+        model: primaryModel,
         contents,
         config,
       });
-    }, 3, 1500);
+    }, 1, 1000); // Failover quickly for the primary model so we don't block the user's interface
+  };
+
+  const runFallback = async () => {
+    return await withRetry(async () => {
+      return await ai.models.generateContent({
+        model: fallbackModel,
+        contents,
+        config,
+      });
+    }, 4, 1200); // 4 backoff attempts for the lightweight fallback model
   };
 
   try {
     // Try primary first
-    return await runWithModel(primaryModel);
+    return await runPrimary();
   } catch (error: any) {
     const errorStr = JSON.stringify(error) || error.message || "";
     const isTransient = 
@@ -102,9 +132,9 @@ async function generateContentWithFallback(
       errorStr.includes("429");
 
     if (isTransient) {
-      console.warn(`Primary model ${primaryModel} failed with transient error. Trying fallback model ${fallbackModel}...`);
+      console.log(`[Gemini Failover] Primary model ${primaryModel} is experiencing high load or code 503. Handing over to fallback model ${fallbackModel}...`);
       try {
-        return await runWithModel(fallbackModel);
+        return await runFallback();
       } catch (fallbackError) {
         console.error(`Fallback model ${fallbackModel} also failed. Re-throwing primary error.`, fallbackError);
         throw error; // Throw original error so the client receives the detailed message
@@ -145,7 +175,7 @@ app.post("/api/pdf/extract", upload.single("file"), async (req, res) => {
   } catch (error: any) {
     console.error("PDF Extraction Service Failure:", error);
     return res.status(500).json({
-      error: error.message || "پی ڈی ایف سے ٹیکسٹ نکالنے میں خرابی پیش آئی۔ (Error extracting PDF content.)",
+      error: formatFriendlyError(error, "PDF text extraction"),
     });
   }
 });
@@ -221,7 +251,7 @@ app.post("/api/video/transcribe", upload.single("file"), async (req, res) => {
   } catch (error: any) {
     console.error("Transcription Failure:", error);
     return res.status(500).json({
-      error: error.message || "آڈیو/ویڈیو ٹرانسکرپٹ تیار کرنے میں خرابی پیش آئی۔ (Transcription parsing stalled.)",
+      error: formatFriendlyError(error, "Transcription and segmentation"),
     });
   }
 });
@@ -258,7 +288,7 @@ ${text}`;
   } catch (error: any) {
     console.error("Translation Service Failure:", error);
     return res.status(500).json({
-      error: error.message || "ترجمہ کرنے میں ناکامی۔ (Translation engine faulted.)",
+      error: formatFriendlyError(error, "Translation"),
     });
   }
 });
@@ -291,7 +321,7 @@ app.post("/api/tts", async (req, res) => {
           },
         },
       });
-    }, 3, 1000);
+    }, 5, 1500);
 
     const base64Audio = response.candidates?.[0]?.content?.parts?.[0]?.inlineData?.data;
 
@@ -333,7 +363,7 @@ app.post("/api/tts", async (req, res) => {
   } catch (error: any) {
     console.error("Speech Synthesis Failed:", error);
     return res.status(500).json({
-      error: error.message || "آواز جنریٹ کرنے میں خرابی۔ (TTS synthesiser failed.)",
+      error: formatFriendlyError(error, "TTS voice synthesis"),
     });
   }
 });

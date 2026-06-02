@@ -32,7 +32,8 @@ export default function Header({ activeTab, setActiveTab, savedCount }: HeaderPr
               System: Online
             </span>
 
-            <nav className="flex items-center gap-1.5 md:gap-3">
+            {/* Desktop Navigation */}
+            <nav className="hidden md:flex items-center gap-1.5 md:gap-3">
               <button
                 onClick={() => setActiveTab('pdf')}
                 className={`flex items-center gap-1.5 px-3 py-1.5 md:px-4 md:py-2 rounded-xl text-xs sm:text-sm font-medium transition-all duration-200 ${
@@ -83,12 +84,64 @@ export default function Header({ activeTab, setActiveTab, savedCount }: HeaderPr
                 }`}
               >
                 <BookOpen className="w-4 h-4" />
-                <span>Guide Book</span>
+                <span>How It Works</span>
               </button>
             </nav>
           </div>
         </div>
       </div>
+
+      {/* Mobile Sticky Bottom Navigation Menu for Single-Hand Touch optimization */}
+      <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-slate-950/95 border-t border-slate-800/80 z-50 py-2.5 px-4 flex justify-around items-center backdrop-blur-lg shadow-[0_-10px_25px_rgba(0,0,0,0.5)]">
+        <button
+          onClick={() => setActiveTab('pdf')}
+          className={`flex flex-col items-center gap-1 text-center font-medium transition-all ${
+            activeTab === 'pdf' ? 'text-cyan-400 font-bold scale-105' : 'text-slate-400 hover:text-slate-350'
+          }`}
+          style={{ minHeight: '44px' }}
+        >
+          <FileText className="w-5 h-5" />
+          <span className="text-[10px] tracking-wide font-sans">PDF Translate</span>
+        </button>
+
+        <button
+          onClick={() => setActiveTab('video')}
+          className={`flex flex-col items-center gap-1 text-center font-medium transition-all ${
+            activeTab === 'video' ? 'text-cyan-400 font-bold scale-105' : 'text-slate-400 hover:text-slate-350'
+          }`}
+          style={{ minHeight: '44px' }}
+        >
+          <Video className="w-5 h-5" />
+          <span className="text-[10px] tracking-wide font-sans">Video/Audio</span>
+        </button>
+
+        <button
+          onClick={() => setActiveTab('history')}
+          className={`flex flex-col items-center gap-1 text-center font-medium transition-all relative ${
+            activeTab === 'history' ? 'text-cyan-400 font-bold scale-105' : 'text-slate-400 hover:text-slate-350'
+          }`}
+          style={{ minHeight: '44px' }}
+        >
+          <History className="w-5 h-5" />
+          <span className="text-[10px] tracking-wide font-sans">History</span>
+          {savedCount > 0 && (
+            <span className="absolute -top-1 -right-2.5 bg-cyan-500 text-slate-950 text-[9px] font-black w-3.5 h-3.5 rounded-full flex items-center justify-center border border-slate-950">
+              {savedCount}
+            </span>
+          )}
+        </button>
+
+        <button
+          onClick={() => setActiveTab('guide')}
+          className={`flex flex-col items-center gap-1 text-center font-medium transition-all ${
+            activeTab === 'guide' ? 'text-amber-400 font-bold scale-105' : 'text-slate-400 hover:text-slate-350'
+          }`}
+          style={{ minHeight: '44px' }}
+        >
+          <BookOpen className="w-5 h-5" />
+          <span className="text-[10px] tracking-wide font-sans">Guidebook</span>
+        </button>
+      </nav>
     </header>
   );
 }

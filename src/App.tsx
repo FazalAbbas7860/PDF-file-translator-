@@ -6,7 +6,7 @@ import VideoTranslator from './components/VideoTranslator';
 import HistoryList from './components/HistoryList';
 import Documentation from './components/Documentation';
 import { Sparkles, FileText, Video, History, HelpCircle, AudioWaveform as Waveform, Globe2 } from 'lucide-react';
-import { jsPDF } from 'jspdf';
+import { exportToPdf } from './utils/pdfGenerator';
 
 export default function App() {
   const [activeTab, setActiveTab] = useState<'pdf' | 'video' | 'history' | 'guide'>('pdf');
@@ -83,25 +83,16 @@ export default function App() {
 
   const handleDownloadPdf = (item: SavedItem) => {
     try {
-      const doc = new jsPDF();
-      doc.setFontSize(16);
-      doc.text("Tarjuma AI Translated Document", 15, 15);
-      
-      doc.setFontSize(10);
-      doc.text(`Target: ${item.targetLang.toUpperCase()}`, 15, 22);
-      doc.text(`Saved Ref: ${item.title}`, 15, 27);
-      
-      doc.setLineWidth(0.5);
-      doc.line(15, 30, 195, 30);
-
-      doc.setFontSize(11);
-      const lines = doc.splitTextToSize(item.translatedText, 175);
-      doc.text(lines, 15, 40);
-      
-      doc.save(`TarjumaAI_Export_${item.id}.pdf`);
+      exportToPdf({
+        title: "Tarjuma AI Translated Document",
+        subtitle: `Target: ${item.targetLang.toUpperCase()} | Saved Ref: ${item.title}`,
+        contentText: item.translatedText,
+        langCode: item.targetLang,
+        filename: `TarjumaAI_Export_${item.id}.pdf`
+      });
     } catch (e) {
       console.error(e);
-      alert("Failed to create PDF file export.");
+      alert("Failed to create PDF file export utilizing custom fonts.");
     }
   };
 
@@ -111,24 +102,27 @@ export default function App() {
       {/* Navbar segment */}
       <Header activeTab={activeTab} setActiveTab={setActiveTab} savedCount={savedItems.length} />
 
-      {/* Main Container Core */}
-      <main className="flex-grow max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      {/* Main Container Core - Mobile First-padding to prevent overlap with sticky bottom toolbar */}
+      <main className="flex-grow max-w-7xl w-full mx-auto px-3 sm:px-6 lg:px-8 py-3 pb-24 md:py-8">
         
-        {/* English Hero Banner spacing */}
-        <div className="text-center space-y-4 mb-10 max-w-3xl mx-auto">
-          <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-teal-500/10 border border-teal-500/20 text-teal-400 text-xs font-mono tracking-wider uppercase">
-            <Globe2 className="w-3.5 h-3.5" /> Fast Multilingual AI Translator
+        {/* Responsive Hero Banner - compact on mobile, majestic on desktop */}
+        <div className="text-center space-y-2 md:space-y-4 mb-4 md:mb-10 max-w-3xl mx-auto">
+          <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-teal-500/10 border border-teal-500/20 text-teal-400 text-[10px] md:text-xs font-mono tracking-wider uppercase">
+            <Globe2 className="w-3 md:w-3.5 h-3 md:h-3.5 animate-spin-slow" /> Fast Multilingual AI Translator
           </div>
-          <h1 className="text-3xl sm:text-4xl md:text-5xl font-extrabold tracking-tight text-white leading-tight">
+          <h1 className="text-2xl sm:text-4xl md:text-5xl font-extrabold tracking-tight text-white leading-tight">
             Fully Automated <span className="text-transparent bg-clip-text bg-gradient-to-r from-teal-400 to-indigo-400">PDF & Video</span> Translator
           </h1>
-          <p className="text-slate-400 text-sm md:text-base leading-relaxed">
+          <p className="text-slate-400 text-xs md:text-base leading-relaxed hidden sm:block">
             Upload any PDF document or video/audio file. Transcribe dialogue, translate documents into arbitrary languages instantly, and generate high-fidelity vocal readouts with natural text-to-speech. Easily export results in standard PDF and audio formats.
+          </p>
+          <p className="text-slate-400 text-xs leading-relaxed sm:hidden px-2">
+            Upload PDF or Media. Transcribe, translate, and synthesize voice with natural speech.
           </p>
         </div>
 
         {/* Selected Module State Renders */}
-        <div className="bg-slate-900/10 border border-slate-800/40 rounded-3xl p-4 sm:p-6 lg:p-8 backdrop-blur-sm shadow-xl min-h-[500px]">
+        <div className="bg-slate-900/10 border border-slate-800/40 rounded-2xl md:rounded-3xl p-3 sm:p-6 lg:p-8 backdrop-blur-sm shadow-xl min-h-[400px]">
           {activeTab === 'pdf' && (
             <PdfTranslator onSaveItem={handleSaveItem} onGlobalSpeak={handleClientSpeak} />
           )}

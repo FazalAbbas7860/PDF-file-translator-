@@ -1,5 +1,5 @@
 import React, { useState, useRef } from 'react';
-import { jsPDF } from 'jspdf';
+import { exportToPdf } from '../utils/pdfGenerator';
 import { 
   FileText, Upload, ArrowRight, Volume2, Download, RefreshCw, 
   Settings, CheckCircle2, AlertTriangle, Book, FileUp, Sparkles, AlertCircle
@@ -85,6 +85,7 @@ export default function PdfTranslator({ onSaveItem, onGlobalSpeak }: PdfTranslat
       const response = await fetch('/api/pdf/extract', {
         method: 'POST',
         body: formData,
+        credentials: 'include',
       });
 
       let data: any = {};
@@ -128,6 +129,7 @@ export default function PdfTranslator({ onSaveItem, onGlobalSpeak }: PdfTranslat
           sourceLanguage: 'auto-detection',
           targetLanguage: langName,
         }),
+        credentials: 'include',
       });
 
       let data: any = {};
@@ -179,6 +181,7 @@ export default function PdfTranslator({ onSaveItem, onGlobalSpeak }: PdfTranslat
           voiceName: ttsVoice,
           langCode: targetLang,
         }),
+        credentials: 'include',
       });
 
       let data: any = {};
@@ -220,34 +223,24 @@ export default function PdfTranslator({ onSaveItem, onGlobalSpeak }: PdfTranslat
     if (!translatedText) return;
 
     try {
-      const doc = new jsPDF();
-      doc.setFontSize(16);
-      doc.text("Tarjuma AI Translated Document", 15, 15);
-      
-      doc.setFontSize(10);
-      doc.text(`Target Language: ${SUPPORTED_LANGUAGES.find(l => l.code === targetLang)?.name || targetLang}`, 15, 22);
-      doc.text(`Source: ${file ? file.name : 'Uploaded File'}`, 15, 27);
-      
-      doc.setLineWidth(0.5);
-      doc.line(15, 30, 195, 30);
-
-      doc.setFontSize(11);
-      
-      // Split text into lines to avoid overflow in jsPDF
-      const splitText = doc.splitTextToSize(translatedText, 175);
-      doc.text(splitText, 15, 40);
-      
-      doc.save(`TarjumaAI_${file ? file.name.replace('.pdf', '') : 'document'}_translated.pdf`);
+      const targetLangName = SUPPORTED_LANGUAGES.find(l => l.code === targetLang)?.name || targetLang;
+      exportToPdf({
+        title: "Tarjuma AI Translated Document",
+        subtitle: `Target Language: ${targetLangName} | Source: ${file ? file.name : 'Uploaded File'}`,
+        contentText: translatedText,
+        langCode: targetLang,
+        filename: `TarjumaAI_${file ? file.name.replace('.pdf', '') : 'document'}_translated.pdf`
+      });
     } catch (error) {
       console.error(error);
-      setErrorMessage("Failed to generate PDF document.");
+      setErrorMessage("Failed to generate PDF document with custom multi-language fonts.");
     }
   };
 
   return (
-    <div className="space-y-6 animate-fade-in p-2">
+    <div className="space-y-4 md:space-y-6 animate-fade-in p-1 md:p-2">
       {/* Bento-style control panel and upload grid */}
-      <div className="grid grid-cols-1 md:grid-cols-12 gap-5">
+      <div className="grid grid-cols-1 md:grid-cols-12 gap-4 md:gap-5">
         
         {/* Upload File Card (Bento col-span-5) */}
         <div 
@@ -256,13 +249,14 @@ export default function PdfTranslator({ onSaveItem, onGlobalSpeak }: PdfTranslat
           onDragLeave={handleDrag}
           onDrop={handleDrop}
           onClick={() => fileInputRef.current?.click()}
-          className={`md:col-span-5 border-2 border-dashed rounded-2xl p-6 text-center cursor-pointer transition-all duration-300 flex flex-col justify-center items-center gap-4 ${
+          className={`md:col-span-12 lg:col-span-5 border-2 border-dashed rounded-2xl p-4 md:p-6 text-center cursor-pointer transition-all duration-300 flex flex-col justify-center items-center gap-3 md:gap-4 ${
             isDragActive 
-              ? 'border-cyan-400 bg-cyan-500/10 shadow-[0_0_20px_rgba(34,211,238,0.2)] scale-102' 
+              ? 'border-cyan-400 bg-cyan-500/10 shadow-[0_0_20px_rgba(34,211,238,0.2)] scale-[1.01]' 
               : file 
               ? 'border-emerald-500/50 bg-slate-900/40 hover:bg-slate-900/60' 
               : 'border-slate-800 bg-slate-900/30 hover:border-slate-700 hover:bg-slate-900/50'
           }`}
+          style={{ minHeight: '140px' }}
         >
           <input 
             ref={fileInputRef}
@@ -272,43 +266,48 @@ export default function PdfTranslator({ onSaveItem, onGlobalSpeak }: PdfTranslat
             className="hidden"
           />
 
-          <div className="w-16 h-16 bg-slate-900 border border-slate-800 rounded-full flex items-center justify-center shadow-inner group-hover:scale-105 transition-transform">
-            <FileUp className="w-8 h-8 text-cyan-400" />
+          <div className="w-12 h-12 md:w-16 md:h-16 bg-slate-900 border border-slate-800 rounded-full flex items-center justify-center shadow-inner group-hover:scale-105 transition-transform shrink-0">
+            <FileUp className="w-6 h-6 md:w-8 md:h-8 text-cyan-400" />
           </div>
-          <div>
-            <p className="font-bold text-slate-200 text-sm">
+          <div className="space-y-0.5">
+            <p className="font-bold text-slate-200 text-sm break-all px-2">
               {file ? file.name : 'Select or drag PDF file'}
             </p>
-            <p className="text-xs text-slate-500 mt-1 font-mono">
-              {file ? `${(file.size / (1024 * 1024)).toFixed(2)} MB • PDF` : 'Drag & drop or Click to browse'}
+            <p className="text-[11px] text-slate-500 font-mono">
+              {file ? `${(file.size / (1024 * 1024)).toFixed(2)} MB • PDF` : 'Drag & drop or tap to browse'}
             </p>
           </div>
-          <button className="px-5 py-2 bg-cyan-600 hover:bg-cyan-500 text-slate-950 font-bold rounded-lg text-xs transition-colors shadow-lg shadow-cyan-950/20">
+          <button 
+            type="button" 
+            className="px-5 py-2 md:py-2.5 bg-cyan-600 hover:bg-cyan-500 text-slate-950 font-bold rounded-xl text-xs sm:text-sm transition-colors shadow-lg active:scale-95"
+            style={{ minHeight: '44px' }}
+          >
             Choose File
           </button>
         </div>
 
         {/* Bento System Status & Language selector card (Bento col-span-7) */}
-        <div className="md:col-span-7 bg-slate-900/40 border border-slate-800/80 rounded-2xl p-6 flex flex-col justify-between space-y-4">
+        <div className="md:col-span-12 lg:col-span-7 bg-slate-900/40 border border-slate-800/80 rounded-2xl p-4 md:p-6 flex flex-col justify-between space-y-4">
           <div>
             <div className="flex justify-between items-center mb-1">
               <span className="text-[10px] text-slate-500 font-mono tracking-widest uppercase">Target Localization</span>
               <span className="px-2 py-0.5 bg-emerald-950/30 text-emerald-400 border border-emerald-500/25 rounded text-[9px] uppercase font-bold tracking-wider">Engine: Gemini 3.5</span>
             </div>
-            <h3 className="text-lg font-bold text-slate-200 flex items-center gap-2">
+            <h3 className="text-base md:text-lg font-bold text-slate-200 flex items-center gap-2">
               <span className="w-1.5 h-5 bg-cyan-500 rounded-full"></span>
               Translation Settings
             </h3>
-            <p className="text-xs text-slate-400 mt-1">Welcome! Select your PDF document, set your target language, and generate an AI translation.</p>
+            <p className="text-xs text-slate-400 mt-1">Select your PDF document, set your target language, and generate an AI translation.</p>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="space-y-1.5">
-              <span className="text-xs text-slate-400 font-medium font-mono">Choose Language:</span>
+              <span className="text-xs text-slate-300 font-medium font-mono">Choose Language:</span>
               <select
                 value={targetLang}
                 onChange={(e) => setTargetLang(e.target.value)}
-                className="w-full bg-slate-950 border border-slate-800 text-slate-200 rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500/20 transition-all font-sans"
+                className="w-full bg-slate-950 border border-slate-800 text-slate-200 rounded-xl px-3.5 py-3 text-sm focus:outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500/20 transition-all font-sans cursor-pointer"
+                style={{ minHeight: '44px' }}
               >
                 {SUPPORTED_LANGUAGES.map(lang => (
                   <option key={lang.code} value={lang.code}>{lang.name}</option>
@@ -317,11 +316,12 @@ export default function PdfTranslator({ onSaveItem, onGlobalSpeak }: PdfTranslat
             </div>
 
             <div className="space-y-1.5">
-              <span className="text-xs text-slate-400 font-medium font-mono">TTS Voice Speaker:</span>
+              <span className="text-xs text-slate-300 font-medium font-mono">TTS Voice Speaker:</span>
               <select
                 value={ttsVoice}
                 onChange={(e) => setTtsVoice(e.target.value)}
-                className="w-full bg-slate-950 border border-slate-800 text-slate-200 rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500/20 transition-all font-sans"
+                className="w-full bg-slate-950 border border-slate-800 text-slate-200 rounded-xl px-3.5 py-3 text-sm focus:outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500/20 transition-all font-sans cursor-pointer"
+                style={{ minHeight: '44px' }}
               >
                 {TTS_VOICES.map(voice => (
                   <option key={voice.id} value={voice.id}>{voice.name}</option>
@@ -330,7 +330,7 @@ export default function PdfTranslator({ onSaveItem, onGlobalSpeak }: PdfTranslat
             </div>
           </div>
 
-          <div className="pt-2 border-t border-slate-800/80 flex items-center justify-between text-[11px] text-slate-500 font-mono">
+          <div className="pt-2 border-t border-slate-800/80 flex items-center justify-between text-[10px] md:text-[11px] text-slate-500 font-mono">
             <span>OCR: Google Cloud Native</span>
             <span>Speed: Instant AI Proxy</span>
           </div>
@@ -349,10 +349,10 @@ export default function PdfTranslator({ onSaveItem, onGlobalSpeak }: PdfTranslat
 
       {/* Main Translation Stage Panels */}
       {(file || isExtracting) && (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 md:gap-6 items-start">
           
           {/* Output Box: Extracted Content */}
-          <div className="bg-slate-900/50 border border-slate-800/80 rounded-2xl p-5 md:p-6 space-y-4">
+          <div className="bg-slate-900/50 border border-slate-800/80 rounded-2xl p-4 md:p-6 space-y-4">
             <div className="flex items-center justify-between border-b border-slate-800/60 pb-3">
               <span className="text-xs font-semibold uppercase tracking-wider text-slate-300 flex items-center gap-1.5 font-mono">
                 <span className="w-1.5 h-4 bg-cyan-400 rounded-full"></span> Extracted Text
@@ -368,16 +368,18 @@ export default function PdfTranslator({ onSaveItem, onGlobalSpeak }: PdfTranslat
               value={extractedText}
               onChange={(e) => setExtractedText(e.target.value)}
               placeholder="Upload a PDF file. The extracted text will appear here automatically."
-              className="w-full h-80 bg-slate-950/85 border border-slate-800/60 rounded-xl p-4 text-slate-300 text-sm focus:border-cyan-500/40 focus:ring-1 focus:ring-cyan-500/10 focus:outline-none resize-none font-sans leading-relaxed"
+              className="w-full h-44 md:h-80 bg-slate-950/85 border border-slate-800/60 rounded-xl p-3 md:p-4 text-slate-300 text-sm focus:border-cyan-500/40 focus:ring-1 focus:ring-cyan-500/10 focus:outline-none resize-none font-sans leading-relaxed"
               disabled={isExtracting}
             ></textarea>
 
             {extractedText.trim() && (
               <div className="flex justify-end pt-1">
                 <button
+                  type="button"
                   onClick={handleTranslate}
                   disabled={isTranslating}
-                  className="px-5 py-2.5 bg-gradient-to-r from-cyan-500 to-indigo-500 hover:from-cyan-400 hover:to-indigo-400 text-slate-950 font-bold text-xs rounded-xl transition-all hover:scale-102 flex items-center gap-1.5 cursor-pointer disabled:opacity-50 shadow-md shadow-cyan-500/10"
+                  className="w-full sm:w-auto px-5 py-3 bg-gradient-to-r from-cyan-500 to-indigo-500 hover:from-cyan-400 hover:to-indigo-400 text-slate-950 font-extrabold text-sm rounded-xl transition-all hover:scale-102 flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50 shadow-md shadow-cyan-500/10 active:scale-95"
+                  style={{ minHeight: '44px' }}
                 >
                   {isTranslating ? (
                     <>
@@ -396,7 +398,7 @@ export default function PdfTranslator({ onSaveItem, onGlobalSpeak }: PdfTranslat
           </div>
 
           {/* Output Box: Translated Content */}
-          <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5 md:p-6 space-y-4 shadow-xl">
+          <div className="bg-slate-900 border border-slate-800 rounded-2xl p-4 md:p-6 space-y-4 shadow-xl">
             <div className="flex items-center justify-between border-b border-slate-800/60 pb-3">
               <span className="text-xs font-semibold uppercase tracking-wider text-cyan-400 flex items-center gap-1.5 font-mono">
                 <span className="w-1.5 h-4 bg-purple-500 rounded-full"></span> Translation Output
@@ -413,7 +415,7 @@ export default function PdfTranslator({ onSaveItem, onGlobalSpeak }: PdfTranslat
               onChange={(e) => setTranslatedText(e.target.value)}
               placeholder="The dynamic AI translation will appear here..."
               dir={targetLang === 'ur' || targetLang === 'ar' || targetLang === 'fa' ? 'rtl' : 'ltr'}
-              className={`w-full h-80 bg-slate-950/85 border border-slate-800/60 rounded-xl p-4 text-slate-200 text-lg font-sans focus:border-cyan-500/40 focus:ring-1 focus:ring-cyan-500/10 focus:outline-none resize-none scroll-smooth select-all leading-relaxed ${
+              className={`w-full h-44 md:h-80 bg-slate-950/85 border border-slate-800/60 rounded-xl p-3 md:p-4 text-slate-250 text-base md:text-lg font-sans focus:border-cyan-500/40 focus:ring-1 focus:ring-cyan-500/10 focus:outline-none resize-none scroll-smooth select-all leading-relaxed ${
                 targetLang === 'ur' || targetLang === 'ar' || targetLang === 'fa' ? 'text-right' : 'text-left'
               }`}
             ></textarea>
@@ -421,25 +423,27 @@ export default function PdfTranslator({ onSaveItem, onGlobalSpeak }: PdfTranslat
             {translatedText.trim() && (
               <div className="space-y-4">
                 {/* Voice Control Row */}
-                <div className="flex flex-wrap items-center justify-between gap-3 bg-slate-950 p-3 rounded-xl border border-slate-800/65 shadow-inner">
+                <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 bg-slate-950 p-3 rounded-xl border border-slate-800/65 shadow-inner">
                   <div className="flex items-center gap-1.5">
                     <Settings className="w-3.5 h-3.5 text-slate-400" />
                     <span className="text-xs text-slate-400 font-mono">TTS Native Sound:</span>
                     <span className="px-2 py-0.5 bg-cyan-950 text-cyan-400 text-[10px] font-mono rounded uppercase font-semibold border border-cyan-800/20">{ttsVoice} matched</span>
                   </div>
 
-                  <div className="flex items-center gap-2">
+                  <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
                     {ttsAudioUrl && (
-                      <audio ref={audioPlayerRef} src={ttsAudioUrl} controls className="h-6 max-w-[130px] outline-none" />
+                      <audio ref={audioPlayerRef} src={ttsAudioUrl} controls className="h-8 w-full sm:max-w-[130px] outline-none" />
                     )}
                     <button
+                      type="button"
                       onClick={handleSynthesizeTts}
                       disabled={isSynthesizing}
-                      className="px-3.5 py-1.5 bg-cyan-500 hover:bg-cyan-400 text-slate-950 rounded-lg text-xs font-bold flex items-center gap-1 disabled:opacity-50 cursor-pointer transition-colors shadow-sm"
+                      className="px-4 py-2.5 bg-cyan-500 hover:bg-cyan-400 text-slate-950 rounded-xl text-xs font-bold flex items-center justify-center gap-1 disabled:opacity-50 cursor-pointer transition-colors shadow-sm"
+                      style={{ minHeight: '44px' }}
                     >
                       {isSynthesizing ? (
                         <>
-                          <RefreshCw className="w-3 h-3 animate-spin" />
+                          <RefreshCw className="w-3.5 h-3.5 animate-spin" />
                           <span>Generating Voice...</span>
                         </>
                       ) : (
@@ -453,10 +457,12 @@ export default function PdfTranslator({ onSaveItem, onGlobalSpeak }: PdfTranslat
                 </div>
 
                 {/* Bottom Actions Row */}
-                <div className="flex justify-between items-center pt-2 gap-3.5">
+                <div className="flex flex-col sm:flex-row gap-2.5 pt-2">
                   <button
+                    type="button"
                     onClick={handleDownloadPdf}
-                    className="px-4 py-2 border border-slate-700 bg-slate-800 hover:bg-slate-700 text-slate-200 font-semibold rounded-lg text-xs flex items-center gap-1.5 transition-colors cursor-pointer"
+                    className="w-full sm:flex-1 px-4 py-3 border border-slate-700 bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold rounded-xl text-xs sm:text-sm flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
+                    style={{ minHeight: '44px' }}
                   >
                     <Download className="w-4 h-4 text-slate-400" />
                     <span>Download PDF</span>
@@ -466,7 +472,8 @@ export default function PdfTranslator({ onSaveItem, onGlobalSpeak }: PdfTranslat
                     <a
                       href={ttsAudioUrl}
                       download={`TarjumaAI_TTS_Speech.wav`}
-                      className="px-4 py-2 border border-cyan-500/20 bg-cyan-500/10 hover:bg-cyan-500/20 text-cyan-400 font-bold rounded-lg text-xs flex items-center gap-1.5 transition-colors cursor-pointer"
+                      className="w-full sm:flex-1 px-4 py-3 border border-cyan-500/20 bg-cyan-500/10 hover:bg-cyan-500/20 text-cyan-400 font-bold rounded-xl text-xs sm:text-sm flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
+                      style={{ minHeight: '44px' }}
                     >
                       <Download className="w-4 h-4" />
                       <span>Download Speech (WAV)</span>

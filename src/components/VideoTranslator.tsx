@@ -1,5 +1,5 @@
 import React, { useState, useRef } from 'react';
-import { jsPDF } from 'jspdf';
+import { exportToPdf } from '../utils/pdfGenerator';
 import { 
   Video, Upload, ArrowRight, Volume2, Download, RefreshCw, 
   Settings, CheckCircle2, AlertTriangle, Book, Film, Speaker, Sparkles, AlertCircle, Play, FileText
@@ -88,6 +88,7 @@ export default function VideoTranslator({ onSaveItem, onGlobalSpeak }: VideoTran
       const response = await fetch('/api/video/transcribe', {
         method: 'POST',
         body: formData,
+        credentials: 'include',
       });
 
       let data: any = {};
@@ -133,6 +134,7 @@ export default function VideoTranslator({ onSaveItem, onGlobalSpeak }: VideoTran
           sourceLanguage: 'auto-detection',
           targetLanguage: langName,
         }),
+        credentials: 'include',
       });
 
       let data: any = {};
@@ -185,6 +187,7 @@ export default function VideoTranslator({ onSaveItem, onGlobalSpeak }: VideoTran
           voiceName: ttsVoice,
           langCode: targetLang,
         }),
+        credentials: 'include',
       });
 
       let data: any = {};
@@ -277,9 +280,9 @@ export default function VideoTranslator({ onSaveItem, onGlobalSpeak }: VideoTran
   };
 
   return (
-    <div className="space-y-6 animate-fade-in p-2">
+    <div className="space-y-4 md:space-y-6 animate-fade-in p-1 md:p-2">
       {/* Bento-style control panel and upload grid */}
-      <div className="grid grid-cols-1 md:grid-cols-12 gap-5">
+      <div className="grid grid-cols-1 md:grid-cols-12 gap-4 md:gap-5">
         
         {/* Upload File Card (Bento col-span-5) */}
         <div 
@@ -288,13 +291,14 @@ export default function VideoTranslator({ onSaveItem, onGlobalSpeak }: VideoTran
           onDragLeave={handleDrag}
           onDrop={handleDrop}
           onClick={() => fileInputRef.current?.click()}
-          className={`md:col-span-5 border-2 border-dashed rounded-2xl p-6 text-center cursor-pointer transition-all duration-300 flex flex-col justify-center items-center gap-4 ${
+          className={`md:col-span-12 lg:col-span-5 border-2 border-dashed rounded-2xl p-4 md:p-6 text-center cursor-pointer transition-all duration-300 flex flex-col justify-center items-center gap-3 md:gap-4 ${
             isDragActive 
-              ? 'border-cyan-400 bg-cyan-500/10 shadow-[0_0_20px_rgba(34,211,238,0.2)] scale-102' 
+              ? 'border-cyan-400 bg-cyan-500/10 shadow-[0_0_20px_rgba(34,211,238,0.2)] scale-[1.01]' 
               : file 
               ? 'border-emerald-500/50 bg-slate-900/40 hover:bg-slate-900/60' 
               : 'border-slate-800 bg-slate-900/30 hover:border-slate-700 hover:bg-slate-900/50'
           }`}
+          style={{ minHeight: '140px' }}
         >
           <input 
             ref={fileInputRef}
@@ -304,43 +308,48 @@ export default function VideoTranslator({ onSaveItem, onGlobalSpeak }: VideoTran
             className="hidden"
           />
 
-          <div className="w-16 h-16 bg-slate-900 border border-slate-800 rounded-full flex items-center justify-center shadow-inner group-hover:scale-105 transition-transform">
-            <Film className="w-8 h-8 text-cyan-400" />
+          <div className="w-12 h-12 md:w-16 md:h-16 bg-slate-900 border border-slate-800 rounded-full flex items-center justify-center shadow-inner group-hover:scale-105 transition-transform shrink-0">
+            <Film className="w-6 h-6 md:w-8 md:h-8 text-cyan-400" />
           </div>
-          <div>
-            <p className="font-bold text-slate-200 text-sm">
-              {file ? file.name : 'Select or drag a video or audio file'}
+          <div className="space-y-0.5">
+            <p className="font-bold text-slate-200 text-sm break-all px-2">
+              {file ? file.name : 'Select or drag video or audio file'}
             </p>
-            <p className="text-xs text-slate-500 mt-1 font-mono">
+            <p className="text-[11px] text-slate-500 font-mono">
               {file ? `${(file.size / (1024 * 1024)).toFixed(2)} MB • Media` : 'MP4, MOV, AVI, MP3, WAV (Max 25MB)'}
             </p>
           </div>
-          <button className="px-5 py-2 bg-cyan-600 hover:bg-cyan-500 text-slate-950 font-bold rounded-lg text-xs transition-colors shadow-lg shadow-cyan-950/20">
+          <button 
+            type="button"
+            className="px-5 py-2 md:py-2.5 bg-cyan-600 hover:bg-cyan-500 text-slate-950 font-bold rounded-xl text-xs sm:text-sm transition-colors shadow-lg active:scale-95"
+            style={{ minHeight: '44px' }}
+          >
             Choose File
           </button>
         </div>
 
         {/* Bento System Status & Language selector card (Bento col-span-7) */}
-        <div className="md:col-span-7 bg-slate-900/40 border border-slate-800/80 rounded-2xl p-6 flex flex-col justify-between space-y-4">
+        <div className="md:col-span-12 lg:col-span-7 bg-slate-900/40 border border-slate-800/80 rounded-2xl p-4 md:p-6 flex flex-col justify-between space-y-4">
           <div>
             <div className="flex justify-between items-center mb-1">
               <span className="text-[10px] text-slate-500 font-mono tracking-widest uppercase">Whisper Voice Core</span>
               <span className="px-2 py-0.5 bg-cyan-950 text-cyan-400 border border-cyan-500/20 rounded text-[9px] uppercase font-bold tracking-wider">Engine: Gemini MultiModal</span>
             </div>
-            <h3 className="text-lg font-bold text-slate-200 flex items-center gap-2">
+            <h3 className="text-base md:text-lg font-bold text-slate-200 flex items-center gap-2">
               <span className="w-1.5 h-5 bg-cyan-500 rounded-full"></span>
               Speech Translation Settings
             </h3>
-            <p className="text-xs text-slate-400 mt-1">Upload an audio or video file. Automatically transcribe dialogue and translate speech into any other language using Artificial Intelligence.</p>
+            <p className="text-xs text-slate-400 mt-1">Transcription of Dialogue and auto AI Translation from soundwaves.</p>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="space-y-1.5">
-              <span className="text-xs text-slate-400 font-medium font-mono">Choose Language:</span>
+              <span className="text-xs text-slate-300 font-medium font-mono">Choose Language:</span>
               <select
                 value={targetLang}
                 onChange={(e) => setTargetLang(e.target.value)}
-                className="w-full bg-slate-950 border border-slate-800 text-slate-200 rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500/20 transition-all font-sans"
+                className="w-full bg-slate-950 border border-slate-800 text-slate-200 rounded-xl px-3.5 py-3 text-sm focus:outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500/20 transition-all font-sans cursor-pointer"
+                style={{ minHeight: '44px' }}
               >
                 {SUPPORTED_LANGUAGES.map(lang => (
                   <option key={lang.code} value={lang.code}>{lang.name}</option>
@@ -349,11 +358,12 @@ export default function VideoTranslator({ onSaveItem, onGlobalSpeak }: VideoTran
             </div>
 
             <div className="space-y-1.5">
-              <span className="text-xs text-slate-400 font-medium font-mono">TTS Voice Speaker:</span>
+              <span className="text-xs text-slate-300 font-medium font-mono">TTS Voice Speaker:</span>
               <select
                 value={ttsVoice}
                 onChange={(e) => setTtsVoice(e.target.value)}
-                className="w-full bg-slate-950 border border-slate-800 text-slate-200 rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500/20 transition-all font-sans"
+                className="w-full bg-slate-950 border border-slate-800 text-slate-200 rounded-xl px-3.5 py-3 text-sm focus:outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500/20 transition-all font-sans cursor-pointer"
+                style={{ minHeight: '44px' }}
               >
                 {TTS_VOICES.map(voice => (
                   <option key={voice.id} value={voice.id}>{voice.name}</option>
@@ -362,7 +372,7 @@ export default function VideoTranslator({ onSaveItem, onGlobalSpeak }: VideoTran
             </div>
           </div>
 
-          <div className="pt-2 border-t border-slate-800/80 flex items-center justify-between text-[11px] text-slate-500 font-mono">
+          <div className="pt-2 border-t border-slate-800/80 flex items-center justify-between text-[10px] md:text-[11px] text-slate-500 font-mono">
             <span>Speech Recognizer: Whisper Large v3</span>
             <span>Synthesizer: Google TTS Cloud</span>
           </div>
@@ -381,10 +391,10 @@ export default function VideoTranslator({ onSaveItem, onGlobalSpeak }: VideoTran
 
       {/* Structured Media Panels */}
       {(file || isTranscribing) && (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 md:gap-6 items-start">
           
           {/* Subtitles Timelines column */}
-          <div className="bg-slate-900/50 border border-slate-800/80 rounded-2xl p-5 md:p-6 space-y-4">
+          <div className="bg-slate-900/50 border border-slate-800/80 rounded-2xl p-4 md:p-6 space-y-4">
             <div className="flex items-center justify-between border-b border-slate-800/60 pb-3">
               <span className="text-xs font-semibold uppercase tracking-wider text-slate-300 flex items-center gap-1.5 font-mono">
                 <span className="w-1.5 h-4 bg-cyan-400 rounded-full"></span> Speech Subtitles Timeline
@@ -398,10 +408,10 @@ export default function VideoTranslator({ onSaveItem, onGlobalSpeak }: VideoTran
 
             {/* Display Subtitles Timeline list */}
             {subtitles.length > 0 ? (
-              <div className="space-y-2.5 max-h-80 overflow-y-auto pr-1 bg-slate-950/70 p-4 rounded-xl border border-slate-800/80">
+              <div className="space-y-2.5 max-h-52 md:max-h-80 overflow-y-auto pr-1 bg-slate-950/70 p-4 rounded-xl border border-slate-800/80">
                 {subtitles.map((sub, i) => (
-                  <div key={i} className="flex gap-3 hover:bg-slate-900/40 p-2 rounded-lg transition-all group border border-transparent hover:border-slate-800/40">
-                    <span className="font-mono text-[10px] text-cyan-400 font-semibold bg-cyan-500/10 h-film py-0.5 px-2 rounded-md">
+                  <div key={i} className="flex gap-2.5 hover:bg-slate-900/40 p-1.5 md:p-2 rounded-lg transition-all group border border-transparent hover:border-slate-800/40">
+                    <span className="font-mono text-[9px] md:text-[10px] text-cyan-400 font-semibold bg-cyan-500/10 h-fit py-0.5 px-1.5 rounded-md self-start shrink-0">
                       {sub.time}
                     </span>
                     <p className="text-xs text-slate-300 leading-relaxed font-sans flex-1">
@@ -415,23 +425,27 @@ export default function VideoTranslator({ onSaveItem, onGlobalSpeak }: VideoTran
                 value={fullText}
                 onChange={(e) => setFullText(e.target.value)}
                 placeholder="The dynamic AI transcription will appear here once audio/video is analyzed..."
-                className="w-full h-80 bg-slate-950/85 border border-slate-800/60 rounded-xl p-4 text-slate-300 text-sm focus:border-cyan-500/40 focus:ring-1 focus:ring-cyan-500/10 focus:outline-none resize-none font-sans leading-relaxed"
+                className="w-full h-44 md:h-80 bg-slate-950/85 border border-slate-800/60 rounded-xl p-3 md:p-4 text-slate-300 text-sm focus:border-cyan-500/40 focus:ring-1 focus:ring-cyan-500/10 focus:outline-none resize-none font-sans leading-relaxed"
                 disabled={isTranscribing}
               ></textarea>
             )}
 
             {/* Bottom tools for timelines */}
             {subtitles.length > 0 && (
-              <div className="flex gap-2 justify-between border-t border-slate-800/60 pt-3">
+              <div className="flex flex-col sm:flex-row gap-2 justify-between border-t border-slate-800/60 pt-3">
                 <button
+                  type="button"
                   onClick={handleDownloadSrt}
-                  className="px-3 py-1.5 rounded-lg bg-slate-900 hover:bg-slate-850 text-[11px] text-cyan-400 flex items-center gap-1 border border-cyan-500/15 cursor-pointer"
+                  className="w-full sm:w-auto px-4 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-850 text-xs text-cyan-400 flex items-center justify-center gap-1.5 border border-cyan-500/15 cursor-pointer"
+                  style={{ minHeight: '44px' }}
                 >
                   <Download className="w-3.5 h-3.5" /> Download SRT Subtitles
                 </button>
                 <button
+                  type="button"
                   onClick={handleDownloadTxtTranscript}
-                  className="px-3 py-1.5 rounded-lg bg-slate-900 hover:bg-slate-850 text-[11px] text-slate-300 flex items-center gap-1 border border-slate-800 cursor-pointer"
+                  className="w-full sm:w-auto px-4 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-850 text-xs text-slate-300 flex items-center justify-center gap-1.5 border border-slate-800 cursor-pointer"
+                  style={{ minHeight: '44px' }}
                 >
                   <FileText className="w-3.5 h-3.5" /> Download Timeline Text
                 </button>
@@ -441,9 +455,11 @@ export default function VideoTranslator({ onSaveItem, onGlobalSpeak }: VideoTran
             {fullText.trim() && (
               <div className="flex justify-end border-t border-slate-800/40 pt-3">
                 <button
+                  type="button"
                   onClick={handleTranslate}
                   disabled={isTranslating}
-                  className="px-5 py-2.5 bg-gradient-to-r from-cyan-500 to-indigo-500 hover:from-cyan-400 hover:to-indigo-400 text-slate-950 font-bold text-xs rounded-xl transition-all hover:scale-102 flex items-center gap-1.5 cursor-pointer disabled:opacity-50 shadow-md shadow-cyan-500/10"
+                  className="w-full sm:w-auto px-5 py-3 bg-gradient-to-r from-cyan-500 to-indigo-500 hover:from-cyan-400 hover:to-indigo-400 text-slate-950 font-extrabold text-sm rounded-xl transition-all hover:scale-102 flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50 shadow-md shadow-cyan-500/10 active:scale-95"
+                  style={{ minHeight: '44px' }}
                 >
                   {isTranslating ? (
                     <>
@@ -462,7 +478,7 @@ export default function VideoTranslator({ onSaveItem, onGlobalSpeak }: VideoTran
           </div>
 
           {/* Translation side column */}
-          <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5 md:p-6 space-y-4 shadow-xl">
+          <div className="bg-slate-900 border border-slate-800 rounded-2xl p-4 md:p-6 space-y-4 shadow-xl">
             <div className="flex items-center justify-between border-b border-slate-800/60 pb-3">
               <span className="text-xs font-semibold uppercase tracking-wider text-cyan-400 flex items-center gap-1.5 font-mono">
                 <span className="w-1.5 h-4 bg-purple-500 rounded-full"></span> Media Speech Translation
@@ -479,7 +495,7 @@ export default function VideoTranslator({ onSaveItem, onGlobalSpeak }: VideoTran
               onChange={(e) => setTranslatedText(e.target.value)}
               placeholder="The speech translation output will appear here..."
               dir={targetLang === 'ur' || targetLang === 'ar' || targetLang === 'fa' ? 'rtl' : 'ltr'}
-              className={`w-full h-80 bg-slate-950/85 border border-slate-800/60 rounded-xl p-4 text-slate-200 text-lg font-sans focus:border-cyan-500/40 focus:ring-1 focus:ring-cyan-500/10 focus:outline-none resize-none scroll-smooth select-all leading-relaxed ${
+              className={`w-full h-44 md:h-80 bg-slate-950/85 border border-slate-800/60 rounded-xl p-3 md:p-4 text-slate-250 text-base md:text-lg font-sans focus:border-cyan-500/40 focus:ring-1 focus:ring-cyan-500/10 focus:outline-none resize-none scroll-smooth select-all leading-relaxed ${
                 targetLang === 'ur' || targetLang === 'ar' || targetLang === 'fa' ? 'text-right' : 'text-left'
               }`}
             ></textarea>
@@ -487,25 +503,27 @@ export default function VideoTranslator({ onSaveItem, onGlobalSpeak }: VideoTran
             {translatedText.trim() && (
               <div className="space-y-4">
                 {/* Voice player bar */}
-                <div className="flex flex-wrap items-center justify-between gap-3 bg-slate-950 p-3 rounded-xl border border-slate-800/65 shadow-inner">
+                <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 bg-slate-950 p-3 rounded-xl border border-slate-800/65 shadow-inner">
                   <div className="flex items-center gap-1.5">
                     <Settings className="w-3.5 h-3.5 text-slate-400" />
                     <span className="text-xs text-slate-400 font-mono">TTS Native Sound:</span>
                     <span className="px-2 py-0.5 bg-cyan-950 text-cyan-400 text-[10px] font-mono rounded uppercase font-semibold border border-cyan-800/20">{ttsVoice} matched</span>
                   </div>
 
-                  <div className="flex items-center gap-2">
+                  <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
                     {ttsAudioUrl && (
-                      <audio ref={audioPlayerRef} src={ttsAudioUrl} controls className="h-6 max-w-[130px] outline-none" />
+                      <audio ref={audioPlayerRef} src={ttsAudioUrl} controls className="h-8 w-full sm:max-w-[130px] outline-none" />
                     )}
                     <button
+                      type="button"
                       onClick={handleSynthesizeTts}
                       disabled={isSynthesizing}
-                      className="px-3.5 py-1.5 bg-cyan-500 hover:bg-cyan-400 text-slate-950 rounded-lg text-xs font-bold flex items-center gap-1 disabled:opacity-50 cursor-pointer transition-colors shadow-sm"
+                      className="px-4 py-2.5 bg-cyan-500 hover:bg-cyan-400 text-slate-950 rounded-xl text-xs font-bold flex items-center justify-center gap-1 disabled:opacity-50 cursor-pointer transition-colors shadow-sm"
+                      style={{ minHeight: '44px' }}
                     >
                       {isSynthesizing ? (
                         <>
-                          <RefreshCw className="w-3 h-3 animate-spin" />
+                          <RefreshCw className="w-3.5 h-3.5 animate-spin" />
                           <span>Generating Speech...</span>
                         </>
                       ) : (
@@ -519,20 +537,20 @@ export default function VideoTranslator({ onSaveItem, onGlobalSpeak }: VideoTran
                 </div>
 
                 {/* Subtitle export options */}
-                <div className="flex justify-between items-center pt-2 gap-3.5">
+                <div className="flex flex-col sm:flex-row gap-2.5 pt-2">
                   <button
+                    type="button"
                     onClick={() => {
-                      const doc = new jsPDF();
-                      doc.setFontSize(16);
-                      doc.text("Tarjuma AI Translated Video Voice", 15, 15);
-                      doc.setLineWidth(0.5);
-                      doc.line(15, 20, 195, 20);
-                      doc.setFontSize(11);
-                      const splitText = doc.splitTextToSize(translatedText, 175);
-                      doc.text(splitText, 15, 30);
-                      doc.save(`TarjumaAI_Video_Translated_${file ? file.name.split('.')[0] : 'transcript'}.pdf`);
+                      exportToPdf({
+                        title: "Tarjuma AI Translated Video Voice",
+                        subtitle: `Target: ${SUPPORTED_LANGUAGES.find(l => l.code === targetLang)?.name || targetLang} | Source: ${file ? file.name : 'Video File'}`,
+                        contentText: translatedText,
+                        langCode: targetLang,
+                        filename: `TarjumaAI_Video_Translated_${file ? file.name.split('.')[0] : 'transcript'}.pdf`
+                      });
                     }}
-                    className="flex-1 px-4 py-2 border border-slate-700 bg-slate-800 hover:bg-slate-700 text-slate-200 font-semibold rounded-lg text-xs flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
+                    className="w-full sm:flex-1 px-4 py-3 border border-slate-700 bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold rounded-xl text-xs sm:text-sm flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
+                    style={{ minHeight: '44px' }}
                   >
                     <Download className="w-4 h-4 text-slate-400" />
                     <span>Download PDF Translation</span>
@@ -542,7 +560,8 @@ export default function VideoTranslator({ onSaveItem, onGlobalSpeak }: VideoTran
                     <a
                       href={ttsAudioUrl}
                       download={`Video_Voiceover_Tarjuma_${Date.now()}.wav`}
-                      className="flex-1 px-4 py-2 border border-cyan-500/25 bg-cyan-500/10 hover:bg-cyan-500/20 text-cyan-400 font-bold rounded-lg text-xs flex items-center justify-center gap-1.5 transition-colors cursor-pointer text-center"
+                      className="w-full sm:flex-1 px-4 py-3 border border-cyan-500/20 bg-cyan-500/10 hover:bg-cyan-500/20 text-cyan-400 font-bold rounded-xl text-xs sm:text-sm flex items-center justify-center gap-1.5 transition-colors cursor-pointer text-center"
+                      style={{ minHeight: '44px' }}
                     >
                       <Download className="w-4 h-4" />
                       <span>Download Speech (WAV)</span>
